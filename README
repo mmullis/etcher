@@ -1,0 +1,145 @@
+
+Etcher: An Erlang implementation of the Django Template Language
+=================================================================
+
+The purpose of Etcher, is to provide a flexible, feature complete,
+implementation of the Django Template Language. An implementation
+that is highly compatible with Django's own version. Developers
+should be able to switch between Python and Erlang without touching
+their web templates. That's the goal.
+
+
+What's Done?
+------------
+
+ * Supports 19 of the 24 standard tags.
+
+ * Supports all 56 standard filters.
+
+   The date formatting code was taken from the ErlyDTL project
+   (http://code.google.com/p/erlydtl/), so Roberto and Evan deserve 
+   full credit for this.
+
+ * Full unicode support.
+
+ * (X)HTML Auto-Escaping is handled just like in Django.
+
+ * Support custom tags and filters. You can even override the 
+   standard ones if you want/need to. 
+
+   Note that the 'load' tag isn't implemented yet, and the API 
+   related to custom tags and filters will likely to change when it 
+   is.
+
+ * The context you pass in can contain a mix of nested records, lists 
+   and proplists.
+
+   To use records you will need to inform the etcher application about 
+   these records in advance. This is simple to do, you can just pass 
+   it the name of a hrl file containing your record definitions.
+
+
+What's NOT Done Yet?
+--------------------
+
+ * 5 standard tags, mostly related to template inheritence and 
+   template/file inclusion. 
+
+   The tags are: 'block', 'extends', 'include', 'load' and 'ssi'.
+
+ * Error Reporting. Yeah, error reporting is abysmal at the moment.
+   It certain needs to be improved.
+
+ * Documentation. The vast bulk of Etcher's functionality is covered
+   by Django's excellent documentation, specifically this page:
+
+     http://docs.djangoproject.com/en/1.1/ref/templates/builtins/
+
+   However, there is still lots of Etcher specific stuff that needs
+   to be documented.
+
+ * More testing (both unit and system testing) is needed.
+
+
+Requirements:
+-------------
+
+Requires Erlang OTP R13B or later. 
+
+
+Download:
+---------
+
+Etcher is hosted on GitHub: 
+
+    http://github.com/jinsky/etcher
+
+
+Getting Started:
+----------------
+
+Assuming you're in the project root directory.
+
+  $ make
+  ...
+  $ erl -pz ebin
+  Erlang R13B02 (erts-5.7.3) [source] [64-bit] [smp:2:2] [rq:2] ...
+
+  Eshell V5.7.3  (abort with ^G)
+  1> 
+  2> {ok, Template} = etcher:compile("{{ msg|upper }}"). 
+  {ok,{etcher_template,{1,0},
+                       <<106,89,220,82,220,83,204,21,56,10,32,218,209,71,72,129>>,
+                       {1264,362970,416432},
+                       [<<>>,
+                        {variable,{ref,["msg"]},
+                                  [{filter,"upper",undefined,
+                                           {etcher_std_filters,filter_upper}}]},
+                        <<>>],
+                       undefined,undefined}}
+  3> etcher:render(Template, [{msg, "hello, world!"}]).
+  [<<>>,<<"HELLO, WORLD!">>,<<>>]
+  4>
+  4> etcher:render(Template, [{msg, "hello, world!"}], [{return, list}]).
+  "HELLO, WORLD!"
+  5> 
+
+Documentation:
+--------------
+
+There's very little in the way of documentation at the moment. The 
+etcher module is documented, but that's about the extent of it.
+
+    make doc
+
+Then look at doc/html/index.html and navigate to the etcher module.
+
+
+Mailing List:
+-------------
+
+    http://groups.google.com/group/etcher
+
+
+
+Copyright, Licenses & Credits:
+------------------------------
+
+The Etcher code is released under the BSD License. See the LICENSE
+file in the root directory.
+
+This project also includes a good chunk of code from the ErlyDTL
+project (see the file src/etcher_dateformat.erl). The ErlyDTL code
+was released under the MIT license and you can find a copy of their
+license in the third-party-licenses directory.
+
+I've also included the Django License in the third-party-licenses
+directory. It's hard to overstate just how much credit the Django
+developers deserve. Not only did they design this great, highly
+useful, language, but they also wrote an implementation that was
+so clean that even a non-python developer could follow it with
+ease. A significant number of the filters and tags in Etcher are
+direct translations from the Python version. In addition, a number
+of regular expressions were cut & paste directly from the Python
+source code.
+

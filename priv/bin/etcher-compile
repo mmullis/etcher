@@ -1,0 +1,80 @@
+#!/usr/bin/env escript
+
+% NOTE: This script should *NOT* be moved to another directory. It uses 
+%       it's location to find the ebin directory for the etcher 
+%       application (../../ebin). Just call it directly, eg:
+%       '/opt/erlang-stuff/etcher/priv/bin/etcher-compile file.html'
+
+-define(TARGET_FILE_EXT, ".eterm").
+
+main([SrcFile]) ->
+    update_code_path(),
+    Bin = read_source_file(SrcFile),
+    Template = compile(Bin),
+    TargetFile = SrcFile ++ ?TARGET_FILE_EXT,
+    ok = write_template_file(Template, TargetFile);
+main(_) ->
+    usage().
+
+usage() ->
+    io:format(
+        "Usage: etcher-compile [OPTIONS] file~n"
+        "Compiles the source file 'filename' to a binary template file" 
+            " 'filename" ++ ?TARGET_FILE_EXT ++ "'~n").
+
+update_code_path() ->
+    true = code:add_pathz(etcher_ebin_dir()).
+
+etcher_ebin_dir() ->
+    ScriptDir = filename:dirname(escript:script_name()),
+    EbinDir = filename:join([ScriptDir, "..", "..", "ebin"]),
+    TestFile = filename:join([EbinDir, "etcher.beam"]),
+    case file_exists(TestFile) of
+        true ->
+            EbinDir;
+        false ->
+            die("Can't locate etcher ebin directory!")
+    end.    
+
+file_exists(FileName) ->
+    case file:read_file_info(FileName) of
+        {ok, _} ->
+            true;
+        _ ->
+            false
+    end.
+
+read_source_file(SrcFile) ->
+    case file:read_file(SrcFile) of
+        {ok, Bin} ->
+            Bin;
+        {error, Reason} ->
+            S = io_lib:format("Can't read source file '~s' (~p)", 
+                                [SrcFile, Reason]),
+            die(S)
+    end.    
+
+write_template_file(Template, TargetFile) ->
+    Bytes = term_to_binary(Template),
+    case file:write_file(TargetFile, Bytes) of
+        ok ->   
+            ok;
+        {error, Reason} ->
+            S = io_lib:format("Failed to write file '~s' (~p)", 
+                                [TargetFile, Reason]),
+            die(S)
+    end.
+
+compile(Bin) ->
+    case etcher:compile(Bin) of
+        {ok, Template} ->
+            Template;
+        {error, Reason} ->
+            S = io_lib:format("Failed to compile: ~p", [Reason]),
+            die(S)
+    end.
+
+die(Reason) ->
+    io:format("Error: ~s~n", [iolist_to_binary(Reason)]),
+    halt(1).
+

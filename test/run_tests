@@ -1,0 +1,22 @@
+#!/usr/bin/env escript
+
+-define(TEST_RECORDS_FILE, "./src/records.hrl").
+
+main([]) ->
+    ok = code:add_pathsz(["../ebin", "ebin"]),
+    init(),
+    eunit:test(list_test_mods()).
+
+init() ->
+    ok = application:start(etcher),
+    etcher:add_record_defs(filename:absname(?TEST_RECORDS_FILE)).
+
+list_test_mods() -> 
+    Files = filelib:wildcard("test_*.beam", "ebin"),
+    ModName =
+        fun(FileName) ->
+            S = re:replace(FileName, ".beam$", "", [{return, list}]),
+            list_to_atom(S)
+        end,    
+    [ModName(FileName) || FileName <- Files].
+
