@@ -44,8 +44,6 @@
 
 -include("internal.hrl").
 
--define(END_TAG_NAME, "$thats_all_folks$").
-
 -define(IS_VALID_ARG_REQ(T), 
                 ((T =:= true) or (T =:= false) or (T =:= optional))).
 
@@ -61,13 +59,12 @@
 %%------------------------------------------------------------------------
 
 parse(Tokens, Options) ->
-    Tokens1 = Tokens ++ [#tag{name=?END_TAG_NAME}],
-    PS = #ps{tokens=Tokens1, 
+    PS = #ps{tokens=Tokens, 
              tag_db=standard_tags(),
              filter_db=standard_filters()},
     PS1 = apply_options(Options, PS),
     ok = check_first_only_tags(PS1),
-    {?END_TAG_NAME, ParsedData, _PS2} = parse_until(PS1, ?END_TAG_NAME),
+    {end_of_tokens, ParsedData, _PS2} = parse_until(PS1, []),
     {ok, ParsedData}.
 
 standard_filters() ->
@@ -134,7 +131,7 @@ check_first_only_tags([], _TagDb, _IsFirst) ->
 %% TAG API
 %%------------------------------------------------------------------------
 
-parse_until(#ps{} = PS, [TagName | _] = EndTags) when is_list(TagName) ->
+parse_until(#ps{} = PS, EndTags) when EndTags =:= []; is_list(hd(EndTags)) ->
     do_parse_until(PS, EndTags, []);
 parse_until(PS, EndTag) when is_list(EndTag) ->
     parse_until(PS, [EndTag]).
@@ -169,6 +166,8 @@ do_parse_until(#ps{tokens=[#variable{} = Var | Rest]} = PS, EndTags, Acc) ->
     do_parse_until(PS#ps{tokens=Rest}, EndTags, [Var1 | Acc]);
 do_parse_until(#ps{tokens=[Tok | Rest]} = PS, EndTags, Acc) ->
     do_parse_until(PS#ps{tokens=Rest}, EndTags, [Tok | Acc]);
+do_parse_until(#ps{tokens=[]} = PS, [], Acc) ->
+    {end_of_tokens, lists:reverse(Acc), PS};
 do_parse_until(#ps{tokens=[]}, EndTags, _Acc) ->
     throw({missing_end_tag, {expected, EndTags}}).
 
