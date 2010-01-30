@@ -24,6 +24,8 @@ tag_comment_test() ->
                         [{s, "yabba"}, {count, lists:seq(1, 10)}]),
     "d--d" = render("d-{# {% for i in ... TODO - AFTER SNACK ... #}-d", 
                         [{s, "yabba"}, {count, lists:seq(1, 10)}]),
+    "e--e" = render("e-{% comment %} {{ 'yabba dabba'|upper }} {% endcomment %}-e", 
+                        [{s, "yabba"}, {count, lists:seq(1, 10)}]),
     ok.
 
 tag_csrf_token_test() ->

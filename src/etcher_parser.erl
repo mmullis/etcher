@@ -142,8 +142,8 @@ do_parse_until(#ps{tokens=[#tag{name=TagName, extra=Extra} = Tag | Rest]} = PS,
             Parsed = lists:reverse(Acc),
             {TagName, Parsed, PS1};
         false ->
-            {Renderer, PS2} = parse_tag(Tag, PS1),
-            do_parse_until(PS2, EndTags, [Renderer | Acc])
+            {PS2, Acc1} = parse_tag(Tag, PS1, Acc),
+            do_parse_until(PS2, EndTags, Acc1)
     end;
 do_parse_until(#ps{tokens=[#variable{} = Var | Rest]} = PS, EndTags, Acc) ->
     Var1 = parse_variable(Var, PS),
@@ -153,12 +153,17 @@ do_parse_until(#ps{tokens=[Tok | Rest]} = PS, EndTags, Acc) ->
 do_parse_until(#ps{tokens=[]}, EndTags, _Acc) ->
     throw({missing_end_tag, {expected, EndTags}}).
 
-parse_tag(#tag{name=TagName} = Tag, #ps{tag_db=TagDb} = PS) ->
+parse_tag(#tag{name=TagName} = Tag, #ps{tag_db=TagDb} = PS, Acc) ->
     case lists:keyfind(TagName, #tag_def.name, TagDb) of
         #tag_def{mf={Mod, Fun}} ->
-            {Mfa, PS1} = Mod:Fun(PS, Tag),
-            Renderer = new_renderer(TagName, Mfa),
-            {Renderer, PS1};
+            case Mod:Fun(PS, Tag) of
+                #ps{} = PS1 ->
+                    {PS1, Acc};
+                {Mfa, #ps{} = PS1} ->
+                    Renderer = new_renderer(TagName, Mfa),
+                    Acc1 = [Renderer | Acc],
+                    {PS1, Acc1}
+            end;
         false ->
             throw({no_such_tag, TagName})
     end.

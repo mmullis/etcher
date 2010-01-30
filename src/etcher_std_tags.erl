@@ -46,8 +46,8 @@
 
 -export([standard_tags/0,
          tag_autoescape/2, render_autoescape/2,
-         tag_comment/2, render_comment/2,
-         tag_csrf_token/2, render_csrf_token/2,
+         tag_comment/2, 
+         tag_csrf_token/2, 
          tag_cycle/2, render_cycle/2,
          tag_debug/2, render_debug/2,
          tag_filter/2, render_filter/2,
@@ -126,11 +126,7 @@ render_autoescape(RS, {Underlings, OnOff}) ->
 %%------------------------------------------------------------------------
 
 tag_comment(PS, _Tag) ->
-    PS1 = etcher_parser:skip_until(PS, "endcomment"),
-    {{?MODULE, render_comment, []}, PS1}.
-
-render_comment(_RS, []) ->
-    "".
+    _PS1 = etcher_parser:skip_until(PS, "endcomment").
 
 %%------------------------------------------------------------------------
 %% Tag: csrf_token
@@ -138,10 +134,7 @@ render_comment(_RS, []) ->
 
 % Note: This is a no-op tag in Django 1.0. It's just a placeholder.
 tag_csrf_token(PS, _Tag) ->
-    {{?MODULE, render_csrf_token, []}, PS}.
-
-render_csrf_token(_RS, []) ->
-    "".
+    PS.
 
 %%------------------------------------------------------------------------
 %% Tag: cycle
