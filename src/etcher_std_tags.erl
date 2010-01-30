@@ -50,6 +50,7 @@
          tag_csrf_token/2, 
          tag_cycle/2, render_cycle/2,
          tag_debug/2, render_debug/2,
+         ftag_extends/2, 
          tag_filter/2, render_filter/2,
          tag_firstof/2, render_firstof/2,
          tag_for/2, render_for/2,
@@ -89,12 +90,19 @@
 standard_tags() ->
     FNames = [atom_to_list(F) || {exports, Exports} <- module_info(),
                                              {F, 2} <- Exports],
-    [new_tag_def(Name, list_to_atom(F)) || F = "tag_" ++ Name <- FNames].
+    L = [new_tag_def(Name, list_to_atom(F)) || F = "tag_" ++ Name <- FNames],
+    [new_extends_tag_def() | L].
 
 new_tag_def(Name, Function) ->
     #tag_def{
         name = Name, 
         mf = {?MODULE, Function}}.
+
+% The extends tag is special because it needs to be the first tag in a 
+% template.
+new_extends_tag_def() ->
+    TagDef = new_tag_def("extends", ftag_extends),
+    TagDef#tag_def{must_be_first=true}.
 
 %%------------------------------------------------------------------------
 %% Tag: autoescape
@@ -235,6 +243,15 @@ render_debug(#rs{context=Context}, []) ->
           "Context: ~p\n" 
           "\n---- END DEBUG ----\n",
     io_lib:format(Fmt, [Context]).
+
+%%------------------------------------------------------------------------
+%% Tag: extends
+%%------------------------------------------------------------------------
+
+% Different from other tags in that it must appear first in a template - 
+% hence the 'ftag_' prefix.
+ftag_extends(PS, _Tag) ->
+    PS.
 
 %%------------------------------------------------------------------------
 %% Tag: filter

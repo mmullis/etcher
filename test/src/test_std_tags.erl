@@ -50,6 +50,31 @@ tag_debug_test() ->
     true = is_substring(DebugText, PpContext),
     ok.
     
+ftag_extends_test() ->
+    % The extends tag must appear as first tag or an exception should 
+    % be thrown
+    "" = render("{% extends 'whatever' %}"),
+    "aaa" = render("aaa{% extends 'whatever' %}"),
+    "bbb" = render("bbb{% extends 'whatever' %}{{ woof }}"),
+    "ccc-ccc" = render("ccc-{% extends 'whatever' %}{% firstof 'ccc' 'tree' %}"),
+    ok =
+        try render("{{ woof }}{% extends 'whatever' %}") of
+            _ ->
+                die
+        catch
+            throw:{tag_must_be_first, _} ->
+                ok
+        end,
+    ok =
+        try render("{% firstof 'ddd' 'tree' %}{% extends 'whatever' %}") of
+            _ ->
+                die
+        catch
+            throw:{tag_must_be_first, _} ->
+                ok
+        end,
+    ok.
+
 tag_filter_test() ->
     "SO LONG, AND THANKS FOR ALL THE FISH" =
             render("{% filter upper %}"

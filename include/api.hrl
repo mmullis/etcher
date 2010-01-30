@@ -43,7 +43,12 @@
 
 -record(tag_def, {
             name,                   % string() - eg "autoescape"
-            mf                      % {Mod, Fun}
+            mf,                     % {Mod, Fun}
+            must_be_first = false   % Some tags, such as 'extends' are 
+                                    % required to be the first non-text
+                                    % entity in a template (they can be 
+                                    % preceeded by a text prequel, but not
+                                    % by variables or other tags).
             }).
 
 -record(string, {

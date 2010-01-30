@@ -66,6 +66,7 @@ parse(Tokens, Options) ->
              tag_db=standard_tags(),
              filter_db=standard_filters()},
     PS1 = apply_options(Options, PS),
+    ok = check_first_only_tags(PS1),
     {?END_TAG_NAME, ParsedData, _PS2} = parse_until(PS1, ?END_TAG_NAME),
     {ok, ParsedData}.
 
@@ -110,6 +111,24 @@ apply_options([BadOpt | _], _PS) ->
     throw({unsupported_parser_option, BadOpt});
 apply_options([], PS) ->
     PS.
+
+check_first_only_tags(#ps{tokens=Tokens, tag_db=TagDb}) ->
+    check_first_only_tags(Tokens, TagDb, true).
+
+check_first_only_tags([#tag{name=TagName} | Rest], TagDb, IsFirst) ->
+    case lists:keyfind(TagName, #tag_def.name, TagDb) of
+        #tag_def{must_be_first=true} when not IsFirst ->
+            ErrStr = "Tag '" ++ TagName ++ "' must appear first in template",
+            throw({tag_must_be_first, ErrStr});
+        _ ->
+            check_first_only_tags(Rest, TagDb, false)
+    end;
+check_first_only_tags([#variable{} | Rest], TagDb, _IsFirst) ->
+    check_first_only_tags(Rest, TagDb, false);
+check_first_only_tags([_ | Rest], TagDb, IsFirst) ->
+    check_first_only_tags(Rest, TagDb, IsFirst);
+check_first_only_tags([], _TagDb, _IsFirst) ->
+    ok. 
 
 %%------------------------------------------------------------------------
 %% TAG API
