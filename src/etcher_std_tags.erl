@@ -398,7 +398,7 @@ firstof([], _RS) ->
 tag_for(PS, #tag{extra=S}) ->
     LoopSpec = parse_for_statement(S, PS),
     {MainBlock, IfEmptyBlock, PS1} =
-        case etcher_parser:parse_until(PS, ["empty", "endfor"]) of
+        case parse_until(PS, ["empty", "endfor"]) of
             {"empty", MainParsed, P1} ->
                 {IfEmptyParsed, P2} = parse_until(P1, "endfor"),
                 {MainParsed, IfEmptyParsed, P2};
@@ -552,7 +552,7 @@ unpack_varlist([], _RestVals, Acc) ->
 tag_if(PS, #tag{extra=S}) ->
     Condition = parse_if_statement(S, PS),
     {MainBlock, ElseBlock, PS1} =
-        case etcher_parser:parse_until(PS, ["else", "endif"]) of
+        case parse_until(PS, ["else", "endif"]) of
             {"else", MainParsed, P1} ->
                 {ElseParsed, P2} = parse_until(P1, "endif"),
                 {MainParsed, ElseParsed, P2};
@@ -640,7 +640,7 @@ is_true_condition(Var, RS) ->
 tag_ifchanged(PS, #tag{extra=S}) ->
     Condition = parse_ifchanged_condition(S, PS),
     {MainBlock, ElseBlock, PS1} =
-        case etcher_parser:parse_until(PS, ["else", "endifchanged"]) of
+        case parse_until(PS, ["else", "endifchanged"]) of
             {"else", MainParsed, P1} ->
                 {ElseParsed, P2} = parse_until(P1, "endifchanged"),
                 {MainParsed, ElseParsed, P2};
@@ -990,9 +990,17 @@ render_with(RS, {Underlings, Name, Var}) ->
 %% Misc.
 %%------------------------------------------------------------------------
 
-parse_until(PS, EndTag) ->
-    {EndTag, Parsed, PS1} = etcher_parser:parse_until(PS, EndTag),
-    {Parsed, PS1}.
+% NOTE: different return types depending on parameters
+parse_until(PS, EndTagName) when ?IS_STRING(EndTagName) ->
+    {EndTagName, Parsed, PS1} = parse_until(PS, [EndTagName]),
+    {Parsed, PS1};
+parse_until(PS, [S | _] = EndTagNames) when ?IS_STRING(S) ->
+    case etcher_parser:parse_until(PS, EndTagNames) of
+        {#tag{name=TagName, extra=""}, Parsed, PS1} ->
+            {TagName, Parsed, PS1};
+        {#tag{} = Tag, _Parsed, _PS1} ->
+             throw({end_tag_has_extra_content, Tag})
+    end.
 
 render(RS, L) ->
     etcher_renderer:render(RS, L).

@@ -125,9 +125,7 @@ check_first_only_tags([], _TagDb, _IsFirst) ->
 %%------------------------------------------------------------------------
 
 parse_until(#ps{} = PS, EndTags) when EndTags =:= []; is_list(hd(EndTags)) ->
-    do_parse_until(PS, EndTags, []);
-parse_until(PS, EndTag) when is_list(EndTag) ->
-    parse_until(PS, [EndTag]).
+    do_parse_until(PS, EndTags, []).
 
 % For standard and custom tags which include variables
 compile_variable(#ps{} = PS, S) when is_list(S) ->
@@ -140,16 +138,14 @@ compile_variable(#ps{} = PS, S) when is_list(S) ->
 %% Parser Core
 %%------------------------------------------------------------------------
 
-do_parse_until(#ps{tokens=[#tag{name=TagName, extra=Extra} = Tag | Rest]} = PS,
+do_parse_until(#ps{tokens=[#tag{name=TagName} = Tag | Rest]} = PS,
                EndTags,
                Acc) ->
     PS1 = PS#ps{tokens=Rest},
     case lists:member(TagName, EndTags) of
-        true when Extra =/= "" ->
-            throw({end_tag_has_extra_content, Tag});
         true ->
             Parsed = lists:reverse(Acc),
-            {TagName, Parsed, PS1};
+            {Tag, Parsed, PS1};
         false ->
             {PS2, Acc1} = parse_tag(Tag, PS1, Acc),
             do_parse_until(PS2, EndTags, Acc1)
