@@ -136,10 +136,23 @@ render_autoescape(RS, {Underlings, OnOff}) ->
 %% Tag: block - (Tightly coupled to 'extends' tag)
 %%------------------------------------------------------------------------
 
+% Note - this function is called directly from extends tag. Use caution
+%        if changing return type.
 tag_block(PS, #tag{extra=S}) ->
     BlockName = get_block_name(S),
-    {Parsed, PS1} = parse_until(PS, "endblock"),
+    {Parsed, PS1} = parse_until_endblock(PS, BlockName),
     {{?MODULE, render_block, {Parsed, BlockName}}, PS1}.
+
+parse_until_endblock(PS, BlockName) ->
+    case etcher_parser:parse_until(PS, ["endblock"]) of
+        {#tag{name="endblock", extra=EndTagParam}, Parsed, PS1} when
+                            EndTagParam =:= ""; EndTagParam =:= BlockName ->
+            {Parsed, PS1};
+        {#tag{extra=Unexpected}, _Parsed, _PS1} ->
+            ErrStr = "Bad end tag content for block named '" ++ 
+                            BlockName ++ "': '" ++ Unexpected ++ "'",
+            invalid_syntax(ErrStr)
+    end.
 
 get_block_name(S) ->
     case string_split(S) of
@@ -298,10 +311,9 @@ ftag_extends(PS, #tag{extra=S}) ->
     Args = {SuperTplVar, NamedBlocks},
     {{?MODULE, render_extends, Args}, PS1}.
 
-parse_blocks(#ps{tokens=[#tag{name="block", extra=BlockName} | Rest]} = PS,
-             NamedBlocks) ->
+parse_blocks(#ps{tokens=[#tag{name="block"} = Tag | Rest]} = PS, NamedBlocks) ->
     PS1 = PS#ps{tokens=Rest},
-    {Underlings, _DepletedPS} = parse_until(PS1, "endblock"),
+    {{_Mod, _Fun, {Underlings, BlockName}}, _NewPS} = tag_block(PS1, Tag),
     case proplists:is_defined(BlockName, NamedBlocks) of
         true ->
             ErrStr = "'block' tag with name '" ++ BlockName ++ 

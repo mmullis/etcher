@@ -90,6 +90,15 @@ ftag_extends_test() ->
             throw:{invalid_template_syntax, _} ->
                 ok
         end,
+    "" = render("{% extends base %}{% block fff %}{% endblock fff %}", Context),
+    ok = 
+        try render("{% extends base %}{% block ggg %}{% endblock xxx %}") of
+            _ ->
+                die
+        catch
+            throw:{invalid_template_syntax, _} ->
+                ok
+        end,
     ok.
 
 tag_filter_test() ->
