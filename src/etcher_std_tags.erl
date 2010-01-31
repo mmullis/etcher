@@ -46,11 +46,12 @@
 
 -export([standard_tags/0,
          tag_autoescape/2, render_autoescape/2,
+         tag_block/2, render_block/2,
          tag_comment/2, 
          tag_csrf_token/2, 
          tag_cycle/2, render_cycle/2,
          tag_debug/2, render_debug/2,
-         ftag_extends/2, 
+         ftag_extends/2, render_extends/2,
          tag_filter/2, render_filter/2,
          tag_firstof/2, render_firstof/2,
          tag_for/2, render_for/2,
@@ -86,6 +87,8 @@
             main_block,
             ifempty_block
             }).
+
+-define(BLOCKS_KEY, "_blocks").
 
 standard_tags() ->
     FNames = [atom_to_list(F) || {exports, Exports} <- module_info(),
@@ -128,6 +131,45 @@ tag_autoescape(PS, #tag{extra=Arg}) ->
 render_autoescape(RS, {Underlings, OnOff}) ->
     RS1 = RS#rs{auto_escape=OnOff},
     render(RS1, Underlings).
+
+%%------------------------------------------------------------------------
+%% Tag: block - (Tightly coupled to 'extends' tag)
+%%------------------------------------------------------------------------
+
+tag_block(PS, #tag{extra=S}) ->
+    BlockName = get_block_name(S),
+    {Parsed, PS1} = parse_until(PS, "endblock"),
+    {{?MODULE, render_block, {Parsed, BlockName}}, PS1}.
+
+get_block_name(S) ->
+    case string_split(S) of
+        [Name] when Name =/= "" ->
+            Name;
+        _ ->
+            ErrStr = "'block' tag requires a single name argument",
+            invalid_syntax(ErrStr)
+    end.        
+
+render_block(#rs{context=Context} = RS, {Underlings, BlockName}) ->
+    Blocks = proplists:get_value(?BLOCKS_KEY, Context, []),
+    {_NewRS, Default} = render(RS, Underlings),
+    RS1 = set_super_block(Default, RS),
+    render_block(Blocks, BlockName, RS1, Default).
+
+render_block([{BlockName, Underlings} | Rest], BlockName, RS, _Current) ->
+    {_NewRS, NewCurrent} = render(RS, Underlings),
+    RS1 = set_super_block(NewCurrent, RS),
+    render_block(Rest, BlockName, RS1, NewCurrent);
+render_block([_ | Rest], BlockName, RS, Current) ->
+    render_block(Rest, BlockName, RS, Current);
+render_block([], _BlockName, _RS, Current) ->
+    Current.
+
+set_super_block(Content, RS) ->
+    S = unicode:characters_to_list(Content),
+    String = etcher_util:to_string(S),
+    String1 = String#string{safe=true},
+    update_context("block", [{"super", String1}], RS).
 
 %%------------------------------------------------------------------------
 %% Tag: comment
@@ -245,13 +287,47 @@ render_debug(#rs{context=Context}, []) ->
     io_lib:format(Fmt, [Context]).
 
 %%------------------------------------------------------------------------
-%% Tag: extends
+%% Tag: extends - (Tightly coupled to 'block' tag)
 %%------------------------------------------------------------------------
 
 % Different from other tags in that it must appear first in a template - 
 % hence the 'ftag_' prefix.
-ftag_extends(PS, _Tag) ->
-    PS.
+ftag_extends(PS, #tag{extra=S}) ->
+    SuperTplVar = compile_variable(PS, S),
+    {NamedBlocks, PS1} = parse_blocks(PS, []),
+    Args = {SuperTplVar, NamedBlocks},
+    {{?MODULE, render_extends, Args}, PS1}.
+
+parse_blocks(#ps{tokens=[#tag{name="block", extra=BlockName} | Rest]} = PS,
+             NamedBlocks) ->
+    PS1 = PS#ps{tokens=Rest},
+    {Underlings, _DepletedPS} = parse_until(PS1, "endblock"),
+    case proplists:is_defined(BlockName, NamedBlocks) of
+        true ->
+            ErrStr = "'block' tag with name '" ++ BlockName ++ 
+                            "' appears more than once",
+            invalid_syntax(ErrStr);
+        false ->
+            NamedBlocks1 = [{BlockName, Underlings} | NamedBlocks],
+            parse_blocks(PS1, NamedBlocks1)
+    end;
+parse_blocks(#ps{tokens=[_ | Rest]} = PS, NamedBlocks) ->
+    parse_blocks(PS#ps{tokens=Rest}, NamedBlocks);
+parse_blocks(#ps{tokens=[]} = PS, NamedBlocks) ->
+    {lists:reverse(NamedBlocks), PS}.
+
+render_extends(#rs{context=Context} = RS, {SuperTplName, NamedBlocks}) ->
+    case resolve_variable(RS, SuperTplName) of
+        #etcher_template{version=?CURRENT_TVER, content=Parts} ->
+            Blocks = proplists:get_value(?BLOCKS_KEY, Context, []),
+            Blocks1 = NamedBlocks ++ Blocks,
+            RS1 = update_context(?BLOCKS_KEY, Blocks1, RS),
+            {_NewRS, Rendered} = render(RS1, Parts),
+            {RS, Rendered};                         % Return orignal #rs{}
+        _ ->
+            %% TODO
+            throw(extends_requires_template)
+    end.
 
 %%------------------------------------------------------------------------
 %% Tag: filter

@@ -17,6 +17,10 @@ tag_autoescape_test() ->
                         [{s, "a & a"}]),
     ok.
 
+% The 'block' tag is tested properly in test_inheritence module
+tag_block_test() ->
+    ok.
+
 tag_comment_test() ->
     "a-yabba-a" = render("a-{{ s }}-a", [{s, "yabba"}]),
     "b--b" = render("b-{# {{ s }} #}-b", [{s, "yabba"}]),
@@ -50,15 +54,19 @@ tag_debug_test() ->
     true = is_substring(DebugText, PpContext),
     ok.
     
+% The 'extends' tag is tested more extensively in test_inheritence module
 ftag_extends_test() ->
     % The extends tag must appear as first tag or an exception should 
     % be thrown
-    "" = render("{% extends 'whatever' %}"),
-    "aaa" = render("aaa{% extends 'whatever' %}"),
-    "bbb" = render("bbb{% extends 'whatever' %}{{ woof }}"),
-    "ccc-ccc" = render("ccc-{% extends 'whatever' %}{% firstof 'ccc' 'tree' %}"),
+    {ok, BaseTpl} = etcher:compile(""),
+    Context = [{base, BaseTpl}],
+    "" = render("{% extends base %}", Context),
+    "aaa-" = render("aaa-{% extends base %}-aaa", Context),
+    "bbb-" = render("bbb-{% extends base %}{{ woof }}-bbb", Context),
+    "ccc-" = render("ccc-{% extends base %}-{% firstof 'ccc' 'tree' %}", 
+                       Context),
     ok =
-        try render("{{ woof }}{% extends 'whatever' %}") of
+        try render("{{ woof }}{% extends base %}", Context) of
             _ ->
                 die
         catch
@@ -66,11 +74,20 @@ ftag_extends_test() ->
                 ok
         end,
     ok =
-        try render("{% firstof 'ddd' 'tree' %}{% extends 'whatever' %}") of
+        try render("{% firstof 'ddd' 'tree' %}{% extends base %}", Context) of
             _ ->
                 die
         catch
             throw:{tag_must_be_first, _} ->
+                ok
+        end,
+    ok = 
+        try render("{% extends base %}{% block eee %}{% endblock %}"
+                        "{% block eee %}{% endblock %}") of
+            _ ->
+                die
+        catch
+            throw:{invalid_template_syntax, _} ->
                 ok
         end,
     ok.

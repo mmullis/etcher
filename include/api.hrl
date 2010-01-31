@@ -76,6 +76,13 @@
             extra = ""                  % string()
             }).
 
+% Parser State
+-record(ps, {
+            tokens, 
+            tag_db,
+            filter_db
+            }).
+
 % Renderer State
 -record(rs, {
             context = [],
