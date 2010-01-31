@@ -62,6 +62,16 @@ apply_options([{url_mapper, UrlMapper} | Rest], RS) ->
 apply_options([{auto_escape, AutoEsc} | Rest], RS) when is_boolean(AutoEsc) ->
     RS1 = RS#rs{auto_escape=AutoEsc},
     apply_options(Rest, RS1);
+apply_options([{allowed_include_roots, Prefixes} | Rest], RS) ->
+    IsAbsolutePrefix = fun("/" ++ _) -> true; (_) -> false end,
+    case lists:all(IsAbsolutePrefix, Prefixes) of
+        true ->
+            RS1 = RS#rs{allowed_include_roots=Prefixes},
+            apply_options(Rest, RS1);
+        false ->
+            ErrStr = "Requires a list of absolute file paths",
+            throw({bad_allowed_include_roots, ErrStr})
+    end;
 apply_options([BadOpt | _], _RS) ->
     throw({unsupported_render_option, BadOpt});
 apply_options([], RS) ->

@@ -50,7 +50,8 @@
          url_quote_plus/1,
          url_quote_plus/2,
          py_to_erl_fmt_string/1,
-         trim/1
+         trim/1,
+         normalize_absolute_path/1
          ]).
 
 -include("internal.hrl").
@@ -515,4 +516,20 @@ trim("") ->
     "";
 trim(String) ->
     re:replace(String, "^\\s*(.*?)\\s*$", "\\1", [unicode, {return, list}]).
+
+normalize_absolute_path("/" ++ _ = FilePath) ->
+    Parts = filename:split(FilePath),
+    normalize_absolute_path(Parts, []).
+
+normalize_absolute_path([".." | Rest], Acc) ->
+    case Acc of
+        ["/"] ->
+            normalize_absolute_path(Rest, Acc);
+        [_ | Acc1] ->
+            normalize_absolute_path(Rest, Acc1)
+    end;
+normalize_absolute_path([Part | Rest], Acc) ->
+    normalize_absolute_path(Rest, [Part | Acc]);
+normalize_absolute_path([], Acc) ->
+    filename:join(lists:reverse(Acc)).
 

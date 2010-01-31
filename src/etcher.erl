@@ -155,7 +155,9 @@ render(Template, Context) ->
 %%       Template = template()
 %%       Context = context()
 %%       Options = [ Option ]
-%%       Option = {return, list} | {return, binary} | {auto_escape, bool()} | {url_mapper, function()}
+%%       Option = {return, list} | {return, binary} | {auto_escape, bool()} | 
+%%                {url_mapper, function()} | {allowed_include_roots, PathList}
+%%       PathList = [filename()]
 %%       RenderedContent = chardata() | unicode_binary() | list()
 %% @doc
 %% Renders the Template using the Context you provide.
@@ -186,6 +188,20 @@ render(Template, Context) ->
 %% you return. So, you need to make sure you get it right. There's
 %% a couple of url encoding functions exported from 
 %% {@link etcher_util} that you can use if you need to.
+%%
+%% <code>allowed_include_roots</code> is for the {@link etcher_std_tags:tag_ssi/2. ssi} 
+%% standard tag (and any custom tag that might want to use it). It
+%% contains a list of absolute path prefixes for safe paths that 
+%% ssi is allowed to use. It serves the same purpose as Django's
+%% <a target="_blank" href="http://docs.djangoproject.com/en/1.1/ref/settings/#setting-ALLOWED_INCLUDE_ROOTS">ALLOWED_INCLUDE_ROOTS</a>.
+%% By default <code>allowed_include_roots</code> is an empty 
+%% list <code>[]</code>. 
+%% 
+%% Note, if you choose to use <code>allowed_include_roots</code>
+%% in custom tags, make sure to normalize the filepath before 
+%% checking against these prefixes - prefix checking alone won't save 
+%% you from paths like <code>"/opt/safe/../../etc/passwd"</code>. 
+%% You can use {@link etcher_util:normalize_absolute_path/1} for this. 
 %% @end
 render(_Template, Context, _Options) when not is_list(Context) ->
     throw({invalid_context_arg, list_expected});

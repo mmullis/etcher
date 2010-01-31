@@ -62,6 +62,7 @@
          tag_now/2, render_now/2,
          tag_regroup/2, render_regroup/2,
          tag_spaceless/2, render_spaceless/2,
+         tag_ssi/2, render_ssi/2,
          tag_templatetag/2, render_templatetag/2,
          tag_url/2, render_url/2,
          tag_widthratio/2, render_widthratio/2,
@@ -866,6 +867,56 @@ render_spaceless(RS, Underlings) ->
     {RS1, Output} = render(RS, Underlings),
     L = re:replace(Output, ">\\s+<", "><", [unicode, global, {return, iodata}]),
     {RS1, L}.
+
+%%------------------------------------------------------------------------
+%% Tag: ssi
+%%------------------------------------------------------------------------
+
+tag_ssi(PS, #tag{extra=S}) ->
+    {FilePath, DoParse} =
+        case string_split(S) of
+            ["/" ++ _ = Path] ->
+                {Path, false};
+            ["/" ++ _ = Path, "parsed"] ->
+                {Path, true};
+            _ ->
+                ErrStr = "'ssi' tag syntax is: "
+                                "{% ssi /absolute/path [parsed] %}",
+                invalid_syntax(ErrStr)
+        end,
+    FilePath1 = etcher_util:normalize_absolute_path(FilePath),
+    {{?MODULE, render_ssi, {FilePath1, DoParse}}, PS}.
+
+render_ssi(RS, {FilePath, DoParse}) ->
+    case include_is_allowed(RS, FilePath) of
+        true ->
+            ssi_file(FilePath, DoParse, RS);
+        false ->
+            ""
+    end.
+
+include_is_allowed(#rs{allowed_include_roots=AllowedPrefixes}, FilePath) ->
+    HasPrefix = fun(P) -> lists:prefix(P, FilePath) end,
+    lists:any(HasPrefix, AllowedPrefixes).
+
+ssi_file(FilePath, DoParse, RS) ->
+    case file:read_file(FilePath) of
+        {ok, Content} when DoParse ->
+            compile_and_render(Content, RS);
+        {ok, Content} ->
+            Content;
+        _ ->
+            ""
+    end.
+
+compile_and_render(Content, #rs{context=Context}) ->
+    try 
+        {ok, Template} = etcher:compile(Content),
+        etcher:render(Template, Context)
+    catch
+        throw:_ ->
+            ""
+    end.
 
 %%------------------------------------------------------------------------
 %% Tag: templatetag

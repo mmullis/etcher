@@ -342,6 +342,24 @@ tag_regroup_test() ->
     Expected2 = render(T2, [{people, People2}]),
     ok.
 
+tag_ssi_test() ->
+    {ok, Cwd} = file:get_cwd(),
+    AssetsDir = filename:join([Cwd, "assets"]),
+    SsiTxt = filename:join([AssetsDir, "ssi.txt"]),
+    SsiTpl = filename:join([AssetsDir, "ssi.tpl"]),
+    NonFile = filename:join([AssetsDir, "no-such-file.whatever"]),
+    SneekyMakefile = filename:join([AssetsDir, "..", "Makefile"]),
+    RenderOpts = [{allowed_include_roots, [AssetsDir]}],
+    "" = render("{% ssi " ++ SsiTxt ++ " %}"),
+    "Jog on!\n" = render("{% ssi " ++ SsiTxt ++ " %}", [], RenderOpts),
+    "{{ title }}\n" = render("{% ssi " ++ SsiTpl ++ " %}", [], RenderOpts),
+    "Nice One!\n" = render("{% ssi " ++ SsiTpl ++ " parsed %}", 
+                            [{title, "Nice One!"}] , RenderOpts),
+    "" = render("{% ssi " ++ NonFile ++ " %}", [] , RenderOpts),
+    "" = render("{% ssi /etc/services %}", [] , RenderOpts),
+    "" = render("{% ssi " ++ SneekyMakefile ++ " %}", [] , RenderOpts),
+    ok.
+
 tag_spaceless_test() ->
     "<p><a href=\"foo/\">Foo</a></p>" =
             render("{% spaceless %}<p>

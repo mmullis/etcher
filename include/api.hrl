@@ -89,7 +89,8 @@
             globals = [],
             auto_escape = true,
             template_string_if_invalid = ?EMPTY_STRING,
-            url_mapper                  % optional - user submitted
+            allowed_include_roots = [],     % for ssi tag
+            url_mapper                      % optional - user submitted
             }).
 
 -define(MAJOR_TVER, 1).
