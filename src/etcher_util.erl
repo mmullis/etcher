@@ -51,7 +51,8 @@
          url_quote_plus/2,
          py_to_erl_fmt_string/1,
          trim/1,
-         normalize_absolute_path/1
+         normalize_absolute_path/1,
+         hash/1
          ]).
 
 -include("internal.hrl").
@@ -532,4 +533,7 @@ normalize_absolute_path([Part | Rest], Acc) ->
     normalize_absolute_path(Rest, [Part | Acc]);
 normalize_absolute_path([], Acc) ->
     filename:join(lists:reverse(Acc)).
+
+hash(Term) ->
+    erlang:phash2(Term, 16#FFFFFFFF).
 

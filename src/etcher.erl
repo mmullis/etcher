@@ -108,15 +108,7 @@ compile(Source) ->
 %% on it and write it to a file.
 %% @end
 compile(Source, Options) when is_list(Options) ->
-    case unicode:characters_to_list(Source) of
-        Unicode when is_list(Unicode) ->
-            {ok, Tokens} = etcher_scanner:scan(Unicode),
-            {ok, TemplateContent} = etcher_parser:parse(Tokens, Options),
-            Template = to_template_record(TemplateContent),
-            {ok, Template};
-        Err ->
-            {error, {unicode, Err}}
-    end.
+    etcher_compiler:compile(Source, Options).
 
 %% @spec add_record_defs(RecDefs::RecDefs) -> ok
 %%       RecDefs = filename() | [{record_name(), [record_field()]}]
@@ -227,23 +219,6 @@ render(T, _Context, _Options) ->
 %%------------------------------------------------------------------
 %% Misc.
 %%------------------------------------------------------------------
-
-to_template_record(TemplateContent) ->
-    Template = #etcher_template{},
-    Version = Template#etcher_template.version,
-    Timestamp = now(),
-    Id = create_template_id(Version, Timestamp, TemplateContent),
-    Template#etcher_template{
-                id = Id,
-                created = Timestamp,
-                content = TemplateContent}.
-
-create_template_id({_,_} = Version, 
-                   {_,_,_} = Timestamp, 
-                   TemplateContent) 
-                        when is_list(TemplateContent) ->
-    T = {Version, Timestamp, TemplateContent},
-    erlang:md5(term_to_binary(T)).
 
 get_option(Name, List, Default) ->
     extract(List, Name, Default, []).

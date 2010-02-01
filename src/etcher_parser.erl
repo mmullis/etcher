@@ -36,7 +36,8 @@
 %%%-------------------------------------------------------------------
 
 -module(etcher_parser).
--export([parse/2,
+-export([new/1,
+         parse/1,
          parse_until/2,
          skip_until/2,
          compile_variable/2
@@ -47,18 +48,10 @@
 -define(IS_VALID_ARG_REQ(T), 
                 ((T =:= true) or (T =:= false) or (T =:= optional))).
 
-%%------------------------------------------------------------------------
-%% parse 
-%%------------------------------------------------------------------------
-
-parse(Tokens, Options) ->
-    PS = #ps{tokens=Tokens, 
-             tag_db=standard_tags(),
+new(Options) ->
+    PS = #ps{tag_db=standard_tags(),
              filter_db=standard_filters()},
-    PS1 = apply_options(Options, PS),
-    ok = check_first_only_tags(PS1),
-    {end_of_tokens, ParsedData, _PS2} = parse_until(PS1, []),
-    {ok, ParsedData}.
+    apply_options(Options, PS).
 
 standard_filters() ->
     [check_filter_def(Def) || Def <- etcher_std_filters:standard_filters()].
@@ -101,6 +94,15 @@ apply_options([BadOpt | _], _PS) ->
     throw({unsupported_parser_option, BadOpt});
 apply_options([], PS) ->
     PS.
+
+%%------------------------------------------------------------------------
+%% parse 
+%%------------------------------------------------------------------------
+
+parse(#ps{} = PS) ->
+    ok = check_first_only_tags(PS),
+    {end_of_tokens, ParsedData, _NewPS} = parse_until(PS, []),
+    {ok, ParsedData}.
 
 check_first_only_tags(#ps{tokens=Tokens, tag_db=TagDb}) ->
     check_first_only_tags(Tokens, TagDb, true).

@@ -671,7 +671,7 @@ parse_ifchanged_condition(S, PS) ->
 render_ifchanged(#rs{globals=Globals} = RS, 
                  {{Key, self}, MainBlock, ElseBlock}) ->
     {RS1, L} = render(RS, MainBlock),
-    Hash = hash(L),
+    Hash = etcher_util:hash(L),
     case proplists:get_value(Key, Globals) of
         Hash ->
             render(RS, ElseBlock);
@@ -692,7 +692,7 @@ ifchanged(Condition, RS) ->
 
 ifchanged([{Key, VarStr} | Rest], #rs{globals=Globals} = RS, HasChanged) ->
     Var = resolve_variable(RS, VarStr),
-    Hash = hash(Var),
+    Hash = etcher_util:hash(Var),
     case proplists:lookup(Key, Globals) of
         {Key, Hash} ->
             ifchanged(Rest, RS, HasChanged);
@@ -1137,10 +1137,8 @@ expand_record(Rec, Fields) ->
     lists:zipwith(F, Fields, Values).
 
 unique_key() ->
-    "_key_" ++ integer_to_list(hash(now())).
-
-hash(Term) ->
-    erlang:phash2(Term, 16#FFFFFFFF).
+    Hash = etcher_util:hash(now()),
+    "_key_" ++ integer_to_list(Hash).
 
 to_variables(PS, VarStrs) ->
     [compile_variable(PS, S) || S <- VarStrs].

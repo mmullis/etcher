@@ -80,7 +80,12 @@
 -record(ps, {
             tokens, 
             tag_db,
-            filter_db
+            filter_db,
+            compile_trail = []          % For loop avoidance. Only needed
+                                        % by tags which can do compile-time
+                                        % includes (eg, the 'include' tag).
+                                        % Most tags which include other 
+                                        % templates do so at render-time.
             }).
 
 % Renderer State
