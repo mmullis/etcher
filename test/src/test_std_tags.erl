@@ -358,6 +358,14 @@ tag_ssi_test() ->
     "" = render("{% ssi " ++ NonFile ++ " %}", [] , RenderOpts),
     "" = render("{% ssi /etc/services %}", [] , RenderOpts),
     "" = render("{% ssi " ++ SneekyMakefile ++ " %}", [] , RenderOpts),
+
+    % Test Infinite Include Loop
+    TmpDir = filename:join([Cwd, "tmp"]),
+    SsiSelfIncFile = filename:join([TmpDir, "ssi-self-inc.txt"]),
+    Source = "before-{% ssi " ++ SsiSelfIncFile ++ " parsed %}-after\n",
+    ok = file:write_file(SsiSelfIncFile, Source),
+    RenderOpts1 = [{allowed_include_roots, [TmpDir]}],
+    "before--after\n" = render(Source, [] , RenderOpts1),
     ok.
 
 tag_spaceless_test() ->

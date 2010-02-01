@@ -9,4 +9,5 @@ src:
 
 clean:
 	cd src && $(MAKE) clean
+	rm -f tmp/*
 

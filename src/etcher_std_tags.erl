@@ -909,10 +909,10 @@ ssi_file(FilePath, DoParse, RS) ->
             ""
     end.
 
-compile_and_render(Content, #rs{context=Context}) ->
+compile_and_render(Content, RS) ->
     try 
         {ok, Template} = etcher:compile(Content),
-        etcher:render(Template, Context)
+        etcher_renderer:render_template(RS, Template)
     catch
         throw:_ ->
             ""
