@@ -37,7 +37,8 @@
 
 -module(etcher_renderer).
 -export([new/3,
-         render/2,
+         render_template/2,
+         render_parts/2,
          render_variable/2,
          resolve_variable/2
          ]).
@@ -81,7 +82,27 @@ apply_options([], RS) ->
 %% TAG API
 %%------------------------------------------------------------------------
 
-render(#rs{} = RS , Parts) ->
+render_template(#rs{render_trail=RenderTrail} = RS, 
+                #etcher_template{version=?CURRENT_TVER, 
+                                 id=TemplateId,
+                                 content=Parts}) ->
+    case lists:member(TemplateId, RenderTrail) of
+        true ->
+            ErrStr = "Templates cannot include themselves, "
+                            "directly or indirectly",
+            throw({render_loop, ErrStr});
+        false ->
+            RenderTrail1 = [TemplateId | RenderTrail],
+            RS1 = RS#rs{render_trail=RenderTrail1},
+            render_parts(RS1, Parts)
+    end;
+render_template(#rs{}, #etcher_template{version=Ver}) ->
+    Err = {template_version_mismatch, 
+                {expected_version, ?CURRENT_TVER},
+                {received_version, Ver}},
+    throw(Err).
+
+render_parts(#rs{} = RS, Parts) ->
     {#rs{globals=Globals}, Rendered} = render(Parts, RS, []),
     RS1 = RS#rs{globals=Globals},
     {RS1, Rendered}.

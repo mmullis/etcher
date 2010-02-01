@@ -86,6 +86,7 @@
                                         % includes (eg, the 'include' tag).
                                         % Most tags which include other 
                                         % templates do so at render-time.
+                                        % See also #rs.render_trail
             }).
 
 % Renderer State
@@ -94,6 +95,7 @@
             globals = [],
             auto_escape = true,
             template_string_if_invalid = ?EMPTY_STRING,
+            render_trail = [],              % For loop avoidance
             allowed_include_roots = [],     % for ssi tag
             url_mapper                      % optional - user submitted
             }).

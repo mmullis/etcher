@@ -71,6 +71,19 @@ super_multi_call_test() ->
         render(TplMain, [{base_tpl, TplBase}, {mid_tpl, TplMid}]),
     ok.
 
+no_self_extend_test() ->
+    SrcMain = "{% extends self %}{% block content %}in main{% endblock %}",
+    [TplMain] = compile_all([SrcMain]),
+    ok = 
+        try render(TplMain, [{self, TplMain}]) of
+            _ ->
+                die
+        catch
+            throw:{render_loop, _} ->
+                ok
+        end,
+    ok.
+
 %%-------------------------------------------------------------------
 %% Misc.
 %%-------------------------------------------------------------------

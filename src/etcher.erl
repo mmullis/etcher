@@ -199,20 +199,12 @@ render(_Template, Context, _Options) when not is_list(Context) ->
     throw({invalid_context_arg, list_expected});
 render(_Template, _Context, Options) when not is_list(Options) ->
     throw({invalid_options_arg, list_expected});
-render(#etcher_template{version=?CURRENT_TVER,
-                        content=Parts},
-       Context, 
-       Options) ->
+render(#etcher_template{} = Tpl, Context, Options) ->
     {RetType, RenderOpts} = get_option(return, Options, chardata),
     RecResolver = etcher_rec_resolver:get_record_resolver(),
     RS = etcher_renderer:new(Context, RecResolver, RenderOpts),
-    {_RS1, RenderedData} = etcher_renderer:render(RS, Parts),
+    {_RS1, RenderedData} = etcher_renderer:render_template(RS, Tpl),
     return_as(RetType, RenderedData);
-render(#etcher_template{version=Ver}, _Context, _Options) ->
-    Err = {template_version_mismatch, 
-                {expected_version, ?CURRENT_TVER},
-                {received_version, Ver}},
-    throw(Err);
 render(T, _Context, _Options) ->
     throw({template_not_recognised, T}).
 

@@ -331,11 +331,11 @@ parse_blocks(#ps{tokens=[]} = PS, NamedBlocks) ->
 
 render_extends(#rs{context=Context} = RS, {SuperTplName, NamedBlocks}) ->
     case resolve_variable(RS, SuperTplName) of
-        #etcher_template{version=?CURRENT_TVER, content=Parts} ->
+        #etcher_template{} = Template ->
             Blocks = proplists:get_value(?BLOCKS_KEY, Context, []),
             Blocks1 = NamedBlocks ++ Blocks,
             RS1 = update_context(?BLOCKS_KEY, Blocks1, RS),
-            {_NewRS, Rendered} = render(RS1, Parts),
+            {_NewRS, Rendered} = render(RS1, Template),
             {RS, Rendered};                         % Return orignal #rs{}
         _ ->
             %% TODO
@@ -1065,8 +1065,10 @@ parse_until(PS, [S | _] = EndTagNames) when ?IS_STRING(S) ->
              throw({end_tag_has_extra_content, Tag})
     end.
 
+render(RS, #etcher_template{} = Tpl) ->
+    etcher_renderer:render_template(RS, Tpl);
 render(RS, L) ->
-    etcher_renderer:render(RS, L).
+    etcher_renderer:render_parts(RS, L).
 
 compile_variable(PS, VarStr) ->
     etcher_parser:compile_variable(PS, VarStr).
