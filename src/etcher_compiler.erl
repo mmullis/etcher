@@ -46,16 +46,16 @@ compile(Source, Options) when is_list(Options) ->
 compile(Source, #ps{compile_trail=CompileTrail} = PS) ->
     case unicode:characters_to_list(Source) of
         Unicode when is_list(Unicode) ->
-            Hash = etcher_util:hash(Unicode),
-            case lists:member(Hash, CompileTrail) of
+            Md5 = template_md5(Unicode),
+            case lists:member(Md5, CompileTrail) of
                 true ->
                     ErrStr = "Templates cannot include themselves, "
                                 "directly or indirectly",
                     throw({compile_loop, ErrStr});
                 false ->
-                    CompileTrail1 = [Hash | CompileTrail],
+                    CompileTrail1 = [Md5 | CompileTrail],
                     PS1 = PS#ps{compile_trail=CompileTrail1},
-                    do_compile(Unicode, PS1)
+                    do_compile(Unicode, Md5, PS1)
             end;
         Err ->
             {error, {unicode, Err}}
@@ -65,27 +65,17 @@ compile(Source, #ps{compile_trail=CompileTrail} = PS) ->
 %% Misc.
 %%------------------------------------------------------------------
 
-do_compile(Source, PS) ->
+do_compile(Source, Md5, PS) ->
     {ok, Tokens} = etcher_scanner:scan(Source),
     PS1 = PS#ps{tokens=Tokens},
     {ok, TemplateContent} = etcher_parser:parse(PS1),
-    Template = to_template_record(TemplateContent),
+    Template = #etcher_template{
+                    md5 = Md5,
+                    created = now(),
+                    content = TemplateContent},
     {ok, Template}.
 
-to_template_record(TemplateContent) ->
-    Template = #etcher_template{},
-    Version = Template#etcher_template.version,
-    Timestamp = now(),
-    Id = create_template_id(Version, Timestamp, TemplateContent),
-    Template#etcher_template{
-                id = Id,
-                created = Timestamp,
-                content = TemplateContent}.
-
-create_template_id({_,_} = Version, 
-                   {_,_,_} = Timestamp, 
-                   TemplateContent) 
-                        when is_list(TemplateContent) ->
-    T = {Version, Timestamp, TemplateContent},
-    erlang:md5(term_to_binary(T)).
+template_md5(S) ->
+    Utf8Bin = unicode:characters_to_binary(S),
+    erlang:md5(Utf8Bin).
 

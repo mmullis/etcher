@@ -108,12 +108,13 @@
 -record(etcher_template, {
             version = ?CURRENT_TVER,   % Template Version as {Major, Minor}
 
-            id,                        % MD5 of serialized 
-                                       % {version, created, content}.
+            md5,                       % MD5 of UTF-8 encoded template source.
                                        %
                                        % Note that Etcher does not use this as 
-                                       % a checksum field - it's just a unique 
-                                       % template id.
+                                       % a checksum field - it's main purpose 
+                                       % is for loop detection. Two templates
+                                       % with the same content will have the 
+                                       % the same id.
                                        % 
                                        % Also, *you* should not use this as a 
                                        % checksum field. Roll your own in 

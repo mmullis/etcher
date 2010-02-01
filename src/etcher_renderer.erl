@@ -84,15 +84,15 @@ apply_options([], RS) ->
 
 render_template(#rs{render_trail=RenderTrail} = RS, 
                 #etcher_template{version=?CURRENT_TVER, 
-                                 id=TemplateId,
+                                 md5=TemplateMd5,
                                  content=Parts}) ->
-    case lists:member(TemplateId, RenderTrail) of
+    case lists:member(TemplateMd5, RenderTrail) of
         true ->
             ErrStr = "Templates cannot include themselves, "
                             "directly or indirectly",
             throw({render_loop, ErrStr});
         false ->
-            RenderTrail1 = [TemplateId | RenderTrail],
+            RenderTrail1 = [TemplateMd5 | RenderTrail],
             RS1 = RS#rs{render_trail=RenderTrail1},
             render_parts(RS1, Parts)
     end;

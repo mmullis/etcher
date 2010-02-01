@@ -73,9 +73,9 @@ super_multi_call_test() ->
 
 no_self_extend_test() ->
     SrcMain = "{% extends self %}{% block content %}in main{% endblock %}",
-    [TplMain] = compile_all([SrcMain]),
+    [TplMain1, TplMain2] = compile_all([SrcMain, SrcMain]),
     ok = 
-        try render(TplMain, [{self, TplMain}]) of
+        try render(TplMain1, [{self, TplMain2}]) of
             _ ->
                 die
         catch
