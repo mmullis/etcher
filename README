@@ -12,7 +12,7 @@ their web templates. That's the goal.
 What's Done?
 ------------
 
- * Supports 19 of the 24 standard tags.
+ * Supports 23 of the 24 standard tags.
 
  * Supports all 56 standard filters.
 
@@ -20,9 +20,11 @@ What's Done?
    (http://code.google.com/p/erlydtl/), so Roberto and Evan deserve 
    full credit for this.
 
- * Full unicode support.
+ * Full Unicode support.
 
- * (X)HTML Auto-Escaping is handled just like in Django.
+ * Automatic HTML escaping is handled just like in Django.
+
+ * Supports template inheritance.
 
  * Support custom tags and filters. You can even override the 
    standard ones if you want/need to. 
@@ -42,10 +44,7 @@ What's Done?
 What's NOT Done Yet?
 --------------------
 
- * 5 standard tags, mostly related to template inheritence and 
-   template/file inclusion. 
-
-   The tags are: 'block', 'extends', 'include', 'load' and 'ssi'.
+ * 1 standard tag - the 'load' tag.
 
  * Error Reporting. Yeah, error reporting is abysmal at the moment.
    It certain needs to be improved.
