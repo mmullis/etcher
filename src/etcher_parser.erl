@@ -90,6 +90,8 @@ apply_options([{tags, CustomTags} | Rest], #ps{tag_db=TagDb} = PS) ->
         false ->
             throw({bad_tags_option, list_required})
     end;
+apply_options([{template_loaders, TemplateLoaders} | Rest], PS) ->
+    apply_options(Rest, PS#ps{template_loaders=TemplateLoaders});
 apply_options([BadOpt | _], _PS) ->
     throw({unsupported_parser_option, BadOpt});
 apply_options([], PS) ->

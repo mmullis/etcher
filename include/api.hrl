@@ -81,6 +81,7 @@
             tokens, 
             tag_db,
             filter_db,
+            template_loaders = [],      % [{Mod, Fun, Args}]
             compile_trail = []          % For loop avoidance. Only needed
                                         % by tags which can do compile-time
                                         % includes (eg, the 'include' tag).
@@ -95,7 +96,13 @@
             globals = [],
             auto_escape = true,
             template_string_if_invalid = ?EMPTY_STRING,
+            template_loaders = [],          % [{Mod, Fun, Args}]
             render_trail = [],              % For loop avoidance
+            compiler_opts = [],             % Compiler options for when
+                                            % the renderer is dynamically
+                                            % compiling included templates.
+                                            % Eg, for 'extends', 'include'
+                                            % and 'ssi' tags.
             allowed_include_roots = [],     % for ssi tag
             url_mapper                      % optional - user submitted
             }).

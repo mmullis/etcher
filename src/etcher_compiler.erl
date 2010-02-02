@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% File    : etcher-compiler.erl
+%%% File    : etcher_compiler.erl
 %%% Project : Etcher (http://github.com/jinsky/etcher)
 %%% Author  : Rory Byrne <rory [at] jinsky [dot] com>
 %%% License : BSD

@@ -73,6 +73,25 @@ apply_options([{allowed_include_roots, Prefixes} | Rest], RS) ->
             ErrStr = "Requires a list of absolute file paths",
             throw({bad_allowed_include_roots, ErrStr})
     end;
+apply_options([{compiler_opts, CompilerOpts} | Rest], 
+              #rs{compiler_opts=CurrentCompilerOpts} = RS) 
+                                            when is_list(CompilerOpts) ->
+    % We need to be careful here because the template_loaders option 
+    % can also modify the #rs.compiler_opts field.
+    CompilerOpts1 = proplists:delete(template_loaders, CompilerOpts),
+    NewCompilerOpts = CompilerOpts1 ++ CurrentCompilerOpts,
+    RS1 = RS#rs{compiler_opts=NewCompilerOpts},
+    apply_options(Rest, RS1);
+apply_options([{template_loaders, TemplateLoaders} | Rest], 
+              #rs{compiler_opts=CompilerOpts} = RS) 
+                                            when is_list(TemplateLoaders) ->
+    % We store the template loaders with the compiler options in case they
+    % are used at compile time (eg: can happen with 'include' tag). The
+    % etcher_loader module knows where to look for template loader settings
+    % when it needs them.
+    CompilerOpts1 = [{template_loaders, TemplateLoaders} | CompilerOpts],
+    RS1 = RS#rs{compiler_opts=CompilerOpts1},
+    apply_options(Rest, RS1);
 apply_options([BadOpt | _], _RS) ->
     throw({unsupported_render_option, BadOpt});
 apply_options([], RS) ->

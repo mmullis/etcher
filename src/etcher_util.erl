@@ -52,6 +52,7 @@
          py_to_erl_fmt_string/1,
          trim/1,
          normalize_absolute_path/1,
+         normalize_relative_path/1,
          hash/1
          ]).
 
@@ -533,6 +534,31 @@ normalize_absolute_path([Part | Rest], Acc) ->
     normalize_absolute_path(Rest, [Part | Acc]);
 normalize_absolute_path([], Acc) ->
     filename:join(lists:reverse(Acc)).
+
+normalize_relative_path(FilePath) ->
+    case filename:split(FilePath) of
+        ["/" | Parts] ->
+            normalize_relative_path(Parts, []);
+        Parts ->
+            normalize_relative_path(Parts, [])
+    end.
+
+normalize_relative_path([".." | Rest], Acc) ->
+    case Acc of
+        [] ->
+            illegal;
+        [_ | Acc1] ->
+            normalize_relative_path(Rest, Acc1)
+    end;
+normalize_relative_path([Part | Rest], Acc) ->
+    normalize_relative_path(Rest, [Part | Acc]);
+normalize_relative_path([], Acc) ->
+    case Acc of
+        [] -> 
+            "";
+        _ ->
+            filename:join(lists:reverse(Acc))
+    end.
 
 hash(Term) ->
     erlang:phash2(Term, 16#FFFFFFFF).

@@ -224,6 +224,79 @@ tag_ifnotequal_test() ->
                         [{s1, "ardvark"}, {s2, "woof"}]),
     ok.
 
+tag_include_test() ->
+    {ok, Cwd} = file:get_cwd(),
+    TemplateDirs = [Cwd],
+    RenderOpts = [{template_loaders, [{file, TemplateDirs}]}],
+    CompileOpts = [{template_loaders, [{file, TemplateDirs}]}],
+
+    % A string literal path is handled at compile time
+    "Eddie: Bacon, cozzers!\n" = 
+            render("{% include 'assets/include.src' %}", 
+                   [{who, "eddie"}],
+                   [],
+                   CompileOpts),
+    "Eddie: Bacon, cozzers!\n" = 
+            render("{% include 'assets/include.src' %}", 
+                   [{who, "eddie"}],
+                   RenderOpts,
+                   CompileOpts),
+    "" = render("{% include 'assets/include.src' %}", 
+                   [{who, "eddie"}],
+                   RenderOpts,
+                   []),
+
+    % Anything other than a string literal path is handled at render time
+    "Eddie: Bacon, cozzers!\n" = 
+            render("{% include 'assets/include.src'|lower %}", 
+                   [{who, "eddie"}],
+                   RenderOpts,
+                   []),
+
+    "[Actor]: Can everyone stop gettin' shot?\n[Actor]: Bacon, cozzers!\n\n" = 
+            render("{% include 'assets/include-runtime-loop.src' %}", 
+                   [{who, "[actor]"}, {inc_file, "assets/include.src"}],
+                   RenderOpts,
+                   CompileOpts),
+    ok =
+        try render("{% include 'assets/include-runtime-loop.src' %}", 
+                   [{who, "dog"}, {inc_file, "assets/include-runtime-loop.src"}],
+                   RenderOpts,
+                   CompileOpts) of
+            _ ->
+                die
+        catch 
+            throw:{render_loop, _} ->
+                ok
+        end,
+
+    {ok, WoofTpl} = etcher:compile("in {{ popen }} {{ color }} {{ pclose }} out"),
+    "( in ( red ) out )" =
+            render("{{ popen }} {% include woof %} {{ pclose }}", 
+                   [{popen, "("}, {pclose, ")"}, {woof, WoofTpl}, {color, "red"}]),
+    {ok, WoofLoopTpl} = etcher:compile("{% include woof %}"),
+    ok =
+        try render("{% include woof %}", [{woof, WoofLoopTpl}]) of 
+            _ ->
+                die
+        catch 
+            throw:{render_loop, _} ->
+                ok
+        end,
+
+    "xy" = render("x{% include 'assets/no-such-file-ever' %}y", 
+                  [], 
+                  [],
+                  CompileOpts),
+
+    % Include compiled template file
+    "\nbacon\n\nsoap\n\n" = 
+            render("{% include 'assets/include.eterm' %}", 
+                   [{cast, ["bacon", "soap"]}],
+                   [],
+                   CompileOpts),
+    ok.
+
 % TODO
 % tag_now/2
 
@@ -343,8 +416,7 @@ tag_regroup_test() ->
     ok.
 
 tag_ssi_test() ->
-    {ok, Cwd} = file:get_cwd(),
-    AssetsDir = filename:join([Cwd, "assets"]),
+    AssetsDir = assets_dir(),
     SsiTxt = filename:join([AssetsDir, "ssi.txt"]),
     SsiTpl = filename:join([AssetsDir, "ssi.tpl"]),
     NonFile = filename:join([AssetsDir, "no-such-file.whatever"]),
@@ -360,7 +432,7 @@ tag_ssi_test() ->
     "" = render("{% ssi " ++ SneekyMakefile ++ " %}", [] , RenderOpts),
 
     % Test Infinite Include Loop
-    TmpDir = filename:join([Cwd, "tmp"]),
+    TmpDir = tmp_dir(),
     SsiSelfIncFile = filename:join([TmpDir, "ssi-self-inc.txt"]),
     Source = "before-{% ssi " ++ SsiSelfIncFile ++ " parsed %}-after\n",
     ok = file:write_file(SsiSelfIncFile, Source),
@@ -428,9 +500,12 @@ render(Text) ->
 render(Text, Context) ->
     render(Text, Context, []).
 
-render(Text, Context, Opts) ->
-    {ok, Template} = etcher:compile(Text),
-    etcher:render(Template, Context, [{return, list} | Opts]).
+render(Text, Context, RenderOpts) ->
+    render(Text, Context, RenderOpts, []).
+
+render(Text, Context, RenderOpts, CompileOpts) ->
+    {ok, Template} = etcher:compile(Text, CompileOpts),
+    etcher:render(Template, Context, [{return, list} | RenderOpts]).
 
 is_substring([_ | Rest] = S, MatchStr) ->
     case lists:prefix(MatchStr, S) of
@@ -442,4 +517,13 @@ is_substring([_ | Rest] = S, MatchStr) ->
 is_substring([], _MatchStr) ->
     false.
 
+assets_dir() ->
+    get_dir("assets").
+
+tmp_dir() ->
+    get_dir("tmp").
+
+get_dir(SubDir) ->
+    {ok, Cwd} = file:get_cwd(),
+    filename:join([Cwd, SubDir]).
 

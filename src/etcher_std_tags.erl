@@ -59,6 +59,7 @@
          tag_ifchanged/2, render_ifchanged/2,
          tag_ifequal/2, render_ifequal/2,
          tag_ifnotequal/2, render_ifnotequal/2,
+         tag_include/2, render_include/2,
          tag_now/2, render_now/2,
          tag_regroup/2, render_regroup/2,
          tag_spaceless/2, render_spaceless/2,
@@ -335,7 +336,7 @@ render_extends(#rs{context=Context} = RS, {SuperTplName, NamedBlocks}) ->
             Blocks = proplists:get_value(?BLOCKS_KEY, Context, []),
             Blocks1 = NamedBlocks ++ Blocks,
             RS1 = update_context(?BLOCKS_KEY, Blocks1, RS),
-            {_NewRS, Rendered} = render(RS1, Template),
+            {_NewRS, Rendered} = etcher_renderer:render_template(RS1, Template),
             {RS, Rendered};                         % Return orignal #rs{}
         _ ->
             %% TODO
@@ -748,6 +749,48 @@ render_ifnotequal(RS, {Underlings, Var1, Var2}) ->
     end.
 
 %%------------------------------------------------------------------------
+%% Tag: include
+%%------------------------------------------------------------------------
+
+%% NOTE NON-STANDARD ENHANCEMENT:
+%%  * Unlike in Django, including a variable that resolves to a compiled 
+%%    template is permitted. In Django, it's expected that the variable 
+%%    will only resolve to a file name/path. 
+
+tag_include(PS, #tag{extra=S}) ->
+    Param = 
+        case compile_variable(PS, S) of
+            #variable{val=#string{val=FilePath}, filters=[]} ->
+                load_included_template(PS, FilePath);
+            Var ->
+                Var
+        end,
+    {{?MODULE, render_include, Param}, PS}.
+
+load_included_template(Conf, FilePath) ->
+    case etcher_loader:get_template(Conf, FilePath) of
+        #etcher_template{} = Tpl ->
+            Tpl;
+        undefined ->
+            ""
+    end.
+
+render_include(RS, #etcher_template{} = Tpl) ->
+    etcher_renderer:render_template(RS, Tpl);
+render_include(RS, #variable{} = Var) ->
+    case resolve_variable(RS, Var) of
+        #etcher_template{} = Tpl ->
+            render_include(RS, Tpl);
+        FilePath when ?IS_STRING(FilePath) ->
+            T = load_included_template(RS, FilePath),
+            render_include(RS, T);
+        _ ->
+            ""
+    end;
+render_include(_RS, "") ->
+    "".
+
+%%------------------------------------------------------------------------
 %% Tag: now
 %%------------------------------------------------------------------------
 
@@ -909,9 +952,9 @@ ssi_file(FilePath, DoParse, RS) ->
             ""
     end.
 
-compile_and_render(Content, RS) ->
+compile_and_render(Content, #rs{compiler_opts=CompilerOpts} = RS) ->
     try 
-        {ok, Template} = etcher:compile(Content),
+        {ok, Template} = etcher_compiler:compile(Content, CompilerOpts),
         etcher_renderer:render_template(RS, Template)
     catch
         throw:_ ->
@@ -1065,8 +1108,6 @@ parse_until(PS, [S | _] = EndTagNames) when ?IS_STRING(S) ->
              throw({end_tag_has_extra_content, Tag})
     end.
 
-render(RS, #etcher_template{} = Tpl) ->
-    etcher_renderer:render_template(RS, Tpl);
 render(RS, L) ->
     etcher_renderer:render_parts(RS, L).
 

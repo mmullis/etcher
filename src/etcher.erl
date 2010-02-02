@@ -87,6 +87,37 @@
 %%       advance so it can recognise them and auto-expand them. You tell 
 %%       <code>etcher</code> about record definitions using 
 %%       {@link add_record_defs/1} below.
+%% @type template_loader() = {Mod, Fun, Args} | {file, TemplatedDirs}.
+%%       Allows you to specify a way to load templates (either at 
+%%       compile-time or at render-time). Currently there is only one 
+%%       built in loader - {@link etcher_loader:file_loader/2}. The 
+%%       option <code>{file, TemplateDirs}</code> is a short-cut 
+%%       notation for the file loader and it just gets translated to 
+%%       <code>{etcher_loader, file_loader, TemplateDirs}</code>.
+%%
+%%       You can use your own template loaders. The function you 
+%%       specify will need to accept exactly 2 arguments: (1) A file path
+%%       argument; (2) Whatever <code>Args</code> were specified. That's right, 
+%%       you receive the <code>Args</code> as a list. So, if you store 
+%%       your templates in CouchDB and you might write a function to 
+%%       retrieve them:
+%%       <pre>
+%%           couchdb_load_template(FilePath, [DbName]) ->
+%%               case couch_find_doc(FilePath, DbName) of
+%%                   {ok, Template} ->
+%%                       Template;
+%%                   not_found ->
+%%                       undefined
+%%               end.
+%%       </pre>
+%%       So, you use the <code>FilePath</code> as a key. If you are 
+%%       successful, you return the <code>Template</code>. If you are 
+%%       not successful, you return <code>undefined</code>. Then, to use 
+%%       this loader, you provide the argument:
+%%       <pre>
+%%           {template_loaders, [{my_module, couchdb_load_template, [DbName]}]}
+%%       </pre>
+%%       to either {@link compile/2} or {@link render/3}.
 %% @end
 
 %% @spec compile(Source::Source) -> {ok, template()}
@@ -100,12 +131,21 @@ compile(Source) ->
 %% @spec compile(Source::Source, Options::Options) -> {ok, template()}
 %%       Source = chardata()
 %%       Options = [ Option ]
-%%       Option = {filters, [custom_filter()]} | {tags, [custom_tag()]} 
+%%       Option = {filters, [custom_filter()]} | {tags, [custom_tag()]} | 
+%%                {template_loaders, [template_loader()]}
 %% @doc
 %% Compiles unicode/UTF-8-encoded template source code into a 
 %% template. You can do what you want with this term - store it 
 %% in an mneisa database, call <code>erlang:term_to_binary/1</code>
 %% on it and write it to a file.
+%%
+%% Most template inclusion happens at runtime, but the 'include' tag 
+%% will include templates at compile-time if the template path is 
+%% specified as a string literal, like
+%% "<code>{% include 'articles/123.txt' %}</code>". To find templates
+%% at compile-time, you must provide a <code>template_loaders</code>
+%% option. It works exactly the same as the <code>template_loaders</code>
+%% option provided to {@link render/3}.
 %% @end
 compile(Source, Options) when is_list(Options) ->
     etcher_compiler:compile(Source, Options).
@@ -148,7 +188,9 @@ render(Template, Context) ->
 %%       Context = context()
 %%       Options = [ Option ]
 %%       Option = {return, list} | {return, binary} | {auto_escape, bool()} | 
-%%                {url_mapper, function()} | {allowed_include_roots, PathList}
+%%                {url_mapper, function()} | {allowed_include_roots, PathList} |
+%%                {template_loaders, [template_loader()]} | 
+%%                {compiler_opts, list()}
 %%       PathList = [filename()]
 %%       RenderedContent = chardata() | unicode_binary() | list()
 %% @doc
@@ -194,6 +236,23 @@ render(Template, Context) ->
 %% checking against these prefixes - prefix checking alone won't save 
 %% you from paths like <code>"/opt/safe/../../etc/passwd"</code>. 
 %% You can use {@link etcher_util:normalize_absolute_path/1} for this. 
+%%
+%% Use the <code>template_loaders</code> option to tell etcher how to 
+%% find included/extended templates. Most template inclusion is handled 
+%% at render-time rather than at compile time, and you will certainly 
+%% need to provide this option if you are using template inheritence.
+%%
+%% The <code>compiler_opts</code> option is used when templates are 
+%% compiled on the fly during rendering. This happens more than you 
+%% might think. For example, if you reference templates as a filename
+%% in an <code>'extends'</code> tag, then the file will be compiled 
+%% at render-time (unless it was pre-compiled and saved as a 
+%% <code>term_to_binary</code> entity). The <code>compiler_opts</code>
+%% setting allows you to specifiy any of the options used in 
+%% {@link compile/2} and they will be used when compiling. One exception
+%% is the <code>template_loaders</code> option. You should specify
+%% this as an ordinary render option, and it will be used at compile
+%% time if it's needed.
 %% @end
 render(_Template, Context, _Options) when not is_list(Context) ->
     throw({invalid_context_arg, list_expected});
