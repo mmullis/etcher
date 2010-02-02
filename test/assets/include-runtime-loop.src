@@ -1,0 +1,2 @@
+{{ who|title }}: Can everyone stop gettin' shot?
+{% include inc_file %}

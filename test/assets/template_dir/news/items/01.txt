@@ -1,0 +1,4 @@
+{% extends 'news/news-page.txt' %}
+{% block content %}
+{{ 'A new decade - 2010!'|title }}
+{% endblock %}

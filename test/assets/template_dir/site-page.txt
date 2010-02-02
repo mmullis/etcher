@@ -1,0 +1,4 @@
+[site header]
+{% block subtitle %}[ouch]{% endblock %}
+{% block content %}[ouch]{% endblock %}
+[site footer]

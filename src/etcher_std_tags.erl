@@ -38,11 +38,7 @@
 -module(etcher_std_tags).
 
 %% Tags still TODO:
-%%   - block
-%%   - extends
-%%   - include
 %%   - load
-%%   - ssi
 
 -export([standard_tags/0,
          tag_autoescape/2, render_autoescape/2,
@@ -330,18 +326,30 @@ parse_blocks(#ps{tokens=[_ | Rest]} = PS, NamedBlocks) ->
 parse_blocks(#ps{tokens=[]} = PS, NamedBlocks) ->
     {lists:reverse(NamedBlocks), PS}.
 
-render_extends(#rs{context=Context} = RS, {SuperTplName, NamedBlocks}) ->
-    case resolve_variable(RS, SuperTplName) of
+render_extends(RS, {SuperTplName, NamedBlocks}) ->
+    case find_template(SuperTplName, RS) of
+        undefined ->
+            throw({bad_extended_template, SuperTplName}); 
         #etcher_template{} = Template ->
-            Blocks = proplists:get_value(?BLOCKS_KEY, Context, []),
-            Blocks1 = NamedBlocks ++ Blocks,
-            RS1 = update_context(?BLOCKS_KEY, Blocks1, RS),
-            {_NewRS, Rendered} = etcher_renderer:render_template(RS1, Template),
-            {RS, Rendered};                         % Return orignal #rs{}
-        _ ->
-            %% TODO
-            throw(extends_requires_template)
+            extend_template(Template, NamedBlocks, RS)
     end.
+
+find_template(SuperTplName, RS) ->
+    case resolve_variable(RS, SuperTplName) of
+        #etcher_template{} = Tpl ->
+            Tpl;
+        FilePath when ?IS_STRING(FilePath) ->
+            etcher_loader:get_template(RS, FilePath);
+        _ ->
+            undefined
+    end.
+
+extend_template(Template, NamedBlocks, #rs{context=Context} = RS) ->
+    Blocks = proplists:get_value(?BLOCKS_KEY, Context, []),
+    Blocks1 = NamedBlocks ++ Blocks,
+    RS1 = update_context(?BLOCKS_KEY, Blocks1, RS),
+    {_NewRS, Rendered} = etcher_renderer:render_template(RS1, Template),
+    {RS, Rendered}.                                 % Return orignal #rs{}
 
 %%------------------------------------------------------------------------
 %% Tag: filter

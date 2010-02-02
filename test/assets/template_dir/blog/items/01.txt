@@ -1,0 +1,4 @@
+{% extends 'blog/blog-page.txt' %}
+{% block content %}
+{{ 'how to get behind in advertising'|title }}
+{% endblock %}

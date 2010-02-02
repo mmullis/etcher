@@ -1,0 +1,5 @@
+{% extends 'site-page.txt' %}
+{% block subtitle %}The News{% endblock %}
+{% block content %}
+override me!
+{% endblock %}
