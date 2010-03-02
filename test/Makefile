@@ -12,5 +12,6 @@ assets:
 
 clean:
 	cd src && $(MAKE) clean
+	cd assets && $(MAKE) clean
 	rm -f tmp/*
 
