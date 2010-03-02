@@ -1,6 +1,6 @@
 
 export APP_NAME = etcher
-export VER = 0.2
+export VER = 0.2.1
 
 .PHONY: src doc clean
 

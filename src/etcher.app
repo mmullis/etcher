@@ -37,7 +37,7 @@
 
 {application, etcher,
         [{description, "Templating system based on Django template language"},
-         {vsn, "0.2"},
+         {vsn, "0.2.1"},
          {modules, [
 		etcher,
 		etcher_parser,
