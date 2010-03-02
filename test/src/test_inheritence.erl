@@ -84,25 +84,6 @@ no_self_extend_test() ->
         end,
     ok.
 
-template_loading_test() ->
-    TemplateDir = template_dir(),
-    TemplateLoader = {file, [template_dir()]},
-    RenderOpts = [{template_loaders, [TemplateLoader]}, 
-                  {return, list}],
-
-    BlogPage = filename:join([TemplateDir, "blog", "items", "01.txt"]),
-    {ok, BlogSource} = file:read_file(BlogPage),
-    {ok, BlogTemplate} = etcher:compile(BlogSource),
-    "[site header]\nThe Blog\n\nHow To Get Behind In Advertising\n\n[site footer]\n" =
-            etcher:render(BlogTemplate, [], RenderOpts),
-
-    NewsPage = filename:join([TemplateDir, "news", "items", "01.txt"]),
-    {ok, NewsSource} = file:read_file(NewsPage),
-    {ok, NewsTemplate} = etcher:compile(NewsSource),
-    "[site header]\nThe News\n\nA New Decade - 2010!\n\n[site footer]\n" =
-            etcher:render(NewsTemplate, [], RenderOpts),
-    ok.
-
 %%-------------------------------------------------------------------
 %% Misc.
 %%-------------------------------------------------------------------
@@ -112,8 +93,4 @@ render(Template, Context) ->
 
 compile_all(L) ->
     [begin {ok, Tpl} = etcher:compile(Src), Tpl end || Src <- L].
-
-template_dir() ->
-    {ok, Cwd} = file:get_cwd(),
-    filename:join([Cwd, "assets", "template_dir"]).
 

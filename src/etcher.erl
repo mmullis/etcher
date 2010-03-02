@@ -118,6 +118,11 @@
 %%           {template_loaders, [{my_module, couchdb_load_template, [DbName]}]}
 %%       </pre>
 %%       to either {@link compile/2} or {@link render/3}.
+%% @type template_path() = filepath().
+%%       This is a relative filepath to a template. This filepath will is used
+%%       by a template_loader() to locate the template (usually as a file). The
+%%       template object that is located can be in source or compiled form - it
+%%       will be compiled on the fly if required.
 %% @end
 
 %% @spec compile(Source::Source) -> {ok, template()}
@@ -175,7 +180,7 @@ add_record_defs(T) ->
 %     etcher_rec_resolver:add_record_defs(T, Namespace).
 
 %% @spec render(Template::Template, Context::Context) -> chardata()
-%%       Template = template()
+%%       Template = template() | template_path()
 %%       Context = context()
 %% @doc
 %% Calls <code>render(Template, Context, [])</code>. 
@@ -184,7 +189,7 @@ render(Template, Context) ->
     render(Template, Context, []).
 
 %% @spec render(Template::Template, Context::Context, Options::Options) -> RenderedContent
-%%       Template = template()
+%%       Template = template() | template_path()
 %%       Context = context()
 %%       Options = [ Option ]
 %%       Option = {return, list} | {return, binary} | {auto_escape, bool()} | 
@@ -199,6 +204,10 @@ render(Template, Context) ->
 %% The returned content defaults to chardata(), but using the return 
 %% option you can get a binary() (<code>{return, binary}</code>) or a 
 %% list() (<code>{return, list}</code>).
+%%
+%% If the <code>Template</code> argument is a template_path(), you will
+%% need to include a <code>template_loaders</code> option so that the
+%% template file (it's usually a file) can be located and loaded.
 %%
 %% Auto-escape is on by default, as it is with Django. You can use 
 %% use the <code>{auto_escape, false}</code> option to turn it off.
@@ -258,14 +267,21 @@ render(_Template, Context, _Options) when not is_list(Context) ->
     throw({invalid_context_arg, list_expected});
 render(_Template, _Context, Options) when not is_list(Options) ->
     throw({invalid_options_arg, list_expected});
-render(#etcher_template{} = Tpl, Context, Options) ->
+render(Template, Context, Options) ->
     {RetType, RenderOpts} = get_option(return, Options, chardata),
     RecResolver = etcher_rec_resolver:get_record_resolver(),
     RS = etcher_renderer:new(Context, RecResolver, RenderOpts),
+    Tpl = 
+        case Template of
+            #etcher_template{} ->
+                Template;
+            TemplatePath when ?IS_STRING(TemplatePath) ->
+                load_template(RS, TemplatePath);
+            _ ->
+                throw({template_not_recognised, Template})
+        end,
     {_RS1, RenderedData} = etcher_renderer:render_template(RS, Tpl),
-    return_as(RetType, RenderedData);
-render(T, _Context, _Options) ->
-    throw({template_not_recognised, T}).
+    return_as(RetType, RenderedData).
 
 %%------------------------------------------------------------------
 %% Misc.
@@ -287,4 +303,12 @@ return_as(binary, CharData) ->
     unicode:characters_to_binary(CharData);
 return_as(list, CharData) ->
     unicode:characters_to_list(CharData).
+
+load_template(RS, TemplatePath) ->
+    case etcher_loader:get_template(RS, TemplatePath) of
+        #etcher_template{} = Tpl ->
+            Tpl;
+        undefined ->
+            throw({failed_to_load_template, TemplatePath})
+    end.
 

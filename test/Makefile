@@ -1,11 +1,14 @@
 
-.PHONY: src test
+.PHONY: src test assets
 
-test: src
+test: src assets
 	./run_tests 
 
 src:
 	cd src && $(MAKE)
+
+assets:
+	cd assets && $(MAKE)
 
 clean:
 	cd src && $(MAKE) clean

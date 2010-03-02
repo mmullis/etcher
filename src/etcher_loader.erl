@@ -45,12 +45,8 @@
 get_template(#ps{template_loaders=TemplateLoaders} = PS, Path) ->
     load_and_compile(TemplateLoaders, Path, PS);
 get_template(#rs{compiler_opts=CompilerOpts}, Path) ->
-    case proplists:lookup(template_loaders, CompilerOpts) of
-        {template_loaders, TemplateLoaders} ->
-            load_and_compile(TemplateLoaders, Path, CompilerOpts);        
-        none ->
-            throw({etcher_bug, template_loaders_not_in_ps})
-    end.
+    TemplateLoaders = proplists:get_value(template_loaders, CompilerOpts, []),
+    load_and_compile(TemplateLoaders, Path, CompilerOpts).
 
 load_and_compile(TemplateLoaders, Path, CompilerArg) ->
     case load_template(TemplateLoaders, Path) of
