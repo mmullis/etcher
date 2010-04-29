@@ -208,6 +208,10 @@ tag_ifequal_test() ->
                         [{s1, "woof"}, {s2, "woof"}]),
     "" = render("{% ifequal s1 s2 %}hhh{% endifequal %}", 
                         [{s1, "ardvark"}, {s2, "woof"}]),
+    "iii" = render("{% ifequal s1 s2 %}iii{% else %}III{% endifequal %}", 
+                        [{s1, "woof"}, {s2, "woof"}]),
+    "JJJ" = render("{% ifequal s1 s2 %}jjj{% else %}JJJ{% endifequal %}", 
+                        [{s1, "ardvark"}, {s2, "woof"}]),
     ok.
 
 % Same as 'ifequal' tests
@@ -221,6 +225,10 @@ tag_ifnotequal_test() ->
     "" = render("{% ifnotequal s1 s2 %}ggg{% endifnotequal %}", 
                         [{s1, "woof"}, {s2, "woof"}]),
     "hhh" = render("{% ifnotequal s1 s2 %}hhh{% endifnotequal %}", 
+                        [{s1, "ardvark"}, {s2, "woof"}]),
+    "III" = render("{% ifnotequal s1 s2 %}iii{% else %}III{% endifnotequal %}", 
+                        [{s1, "woof"}, {s2, "woof"}]),
+    "jjj" = render("{% ifnotequal s1 s2 %}jjj{% else %}JJJ{% endifnotequal %}", 
                         [{s1, "ardvark"}, {s2, "woof"}]),
     ok.
 

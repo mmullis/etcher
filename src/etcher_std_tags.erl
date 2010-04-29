@@ -717,21 +717,31 @@ ifchanged([], RS, HasChanged) ->
 %%------------------------------------------------------------------------
 
 tag_ifequal(PS, #tag{extra=S}) ->
+    [Var1, Var2] = parse_ifequal_statement(S, PS),
+    {MainBlock, ElseBlock, PS1} =
+        case parse_until(PS, ["else", "endifequal"]) of
+            {"else", MainParsed, P1} ->
+                {ElseParsed, P2} = parse_until(P1, "endifequal"),
+                {MainParsed, ElseParsed, P2};
+            {"endifequal", MainParsed, P1} ->
+                {MainParsed, "", P1}
+        end,
+    {{?MODULE, render_ifequal, {MainBlock, ElseBlock, Var1, Var2}}, PS1}.
+
+parse_ifequal_statement(S, PS) ->
     case string_split(S) of
         [_, _] = L ->
-            [Var1, Var2] = to_variables(PS, L),
-            {Parsed, PS1} = parse_until(PS, "endifequal"),
-            {{?MODULE, render_ifequal, {Parsed, Var1, Var2}}, PS1};
+            to_variables(PS, L);
         _ ->
             invalid_syntax("'ifequal' takes two arguments")
     end.
 
-render_ifequal(RS, {Underlings, Var1, Var2}) ->
+render_ifequal(RS, {MainBlock, ElseBlock, Var1, Var2}) ->
     case resolve_variable(RS, Var1) =:= resolve_variable(RS, Var2) of
         true ->
-            render(RS, Underlings);
+            render(RS, MainBlock);
         false ->
-            ""
+            render(RS, ElseBlock)
     end.
 
 %%------------------------------------------------------------------------
@@ -739,21 +749,31 @@ render_ifequal(RS, {Underlings, Var1, Var2}) ->
 %%------------------------------------------------------------------------
 
 tag_ifnotequal(PS, #tag{extra=S}) ->
+    [Var1, Var2] = parse_ifnotequal_statement(S, PS),
+    {MainBlock, ElseBlock, PS1} =
+        case parse_until(PS, ["else", "endifnotequal"]) of
+            {"else", MainParsed, P1} ->
+                {ElseParsed, P2} = parse_until(P1, "endifnotequal"),
+                {MainParsed, ElseParsed, P2};
+            {"endifnotequal", MainParsed, P1} ->
+                {MainParsed, "", P1}
+        end,
+    {{?MODULE, render_ifnotequal, {MainBlock, ElseBlock, Var1, Var2}}, PS1}.
+
+parse_ifnotequal_statement(S, PS) ->
     case string_split(S) of
         [_, _] = L ->
-            [Var1, Var2] = to_variables(PS, L),
-            {Parsed, PS1} = parse_until(PS, "endifnotequal"),
-            {{?MODULE, render_ifnotequal, {Parsed, Var1, Var2}}, PS1};
+            to_variables(PS, L);
         _ ->
             invalid_syntax("'ifnotequal' takes two arguments")
     end.
 
-render_ifnotequal(RS, {Underlings, Var1, Var2}) ->
+render_ifnotequal(RS, {MainBlock, ElseBlock, Var1, Var2}) ->
     case resolve_variable(RS, Var1) =/= resolve_variable(RS, Var2) of
         true ->
-            render(RS, Underlings);
+            render(RS, MainBlock);
         false ->
-            ""
+            render(RS, ElseBlock)
     end.
 
 %%------------------------------------------------------------------------
